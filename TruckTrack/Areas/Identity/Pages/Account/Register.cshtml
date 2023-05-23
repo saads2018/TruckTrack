@@ -1,0 +1,93 @@
+﻿@page
+@using Microsoft.AspNetCore.Components.Authorization
+@using TruckTrack.Data
+@using TruckTrack.Models
+@using BlazorInputFile;
+
+@model RegisterModel
+@{
+    ViewData["Title"] = "Register to TruckTrack";
+}
+@inject ApplicationDbContext dbContext;
+@inject SignInManager<AdvancedUser> _signInManager;
+@inject AuthenticationStateProvider authenticate;
+
+
+@if (_signInManager.IsSignedIn(User) && dbContext.Users.Where(x => x.UserName == User.Identity.Name).FirstOrDefault().Admin == true)
+{
+    <div class="row justify-content-md-center">
+        <div class="col-md-10">
+            <form style="margin-top:0.3%" id="registerForm" asp-route-returnUrl="@Model.ReturnUrl" enctype="multipart/form-data" method="post">
+                <h1 style="text-align:center">@ViewData["Title"]</h1>
+                <hr />
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <div class="form-floating">
+                    <input asp-for="Input.FullName" class="form-control" autocomplete="fullname" aria-required="true" />
+                    <label asp-for="Input.FullName" class="form-label"></label>
+                    <span asp-validation-for="Input.FullName" class="text-danger"></span>
+                </div>
+                <div class="form-floating">
+                    <input asp-for="Input.Email" class="form-control" autocomplete="username" aria-required="true" />
+                    <label asp-for="Input.Email"></label>
+                    <span asp-validation-for="Input.Email" class="text-danger"></span>
+                </div>
+                <div class="form-floating">
+                    <input asp-for="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" />
+                    <label asp-for="Input.Password"></label>
+                    <span asp-validation-for="Input.Password" class="text-danger"></span>
+                </div>
+                <div class="form-floating">
+                    <input asp-for="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" />
+                    <label asp-for="Input.ConfirmPassword"></label>
+                    <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
+                </div>
+                <div class="form-floating">
+                    <input asp-for="Input.PhoneNumber" class="form-control" />
+                    <label asp-for="Input.PhoneNumber" class="form-label"></label>
+                    <span asp-validation-for="Input.PhoneNumber" class="text-danger"></span>
+                </div>
+                <div class="form-floating">
+                    <select asp-for="Input.UserType" class="form-control" id="type" autocomplete="new-password" aria-required="true">
+                        <option value="driver">Driver</option>
+                        <option value="owner">Owner</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                    <label asp-for="Input.UserType"></label>
+                    <span asp-validation-for="Input.UserType" class="text-danger"></span>
+                </div>
+                <div id="pic" class="form-floating">
+                    <input accept="image/png ,image/jpg, image/jpeg" style="padding-left:25px; padding-top:40px; padding-bottom:40px; padding-right:40px;" type="file" asp-for="Input.ProfilePicture" class="form-control" />
+                    <label asp-for="Input.ProfilePicture"></label>
+                </div>
+                <button id="registerSubmit" type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
+                <br>
+            </form>
+            <br>
+        </div>
+    </div>
+}
+else
+{
+    <p>You must be logged in as an admin to view this page.</p>
+}
+
+<script>
+    var elementSelect = document.getElementById("type");
+
+    elementSelect.addEventListener("change",function()
+    {
+        if(elementSelect.value == elementSelect.children[0].value)
+        {
+            document.getElementById("pic").style.display="block";
+        }
+        else
+        {
+            document.getElementById("pic").style.display = "none";
+        }
+    });
+</script>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+

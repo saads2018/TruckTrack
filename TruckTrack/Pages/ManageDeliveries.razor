@@ -1,0 +1,157 @@
+﻿@page "/manageDeliveries"
+@using Microsoft.AspNetCore.Identity
+@using TruckTrack.Data
+@using TruckTrack.Models
+@inject ApplicationDbContext dbContext
+@inject IJSRuntime jsRuntime
+@inject SignInManager<AdvancedUser> _signInManager;
+@inject AuthenticationStateProvider authenticate;
+@inject NavigationManager nav;
+
+
+
+
+<AuthorizeView>
+    <Authorized>
+        @if (_signInManager.IsSignedIn(context.User) && dbContext.Users.Where(x => x.UserName == context.User.Identity.Name).FirstOrDefault().Admin == true)
+        {
+            <h3>ManageDeliveries</h3>
+
+            <section style="margin-top:3%;">
+                <h5><b>Create A Delivery</b></h5>
+                <div style="margin-top:1%;">
+                    <label style="margin-left:5px;">Select One Of The Available Drivers: </label>
+                    <select id="driversList" style="margin-top:10px; width:40%;height:35px;" class="form-control">
+                        @foreach (var driver in dbContext.Users.ToList().Where(x => x.Driver == true && dbContext.deliveriesList.ToList().Where(y => y.DriverUserName == x.UserName && y.DeliveryStatus == false).FirstOrDefault() == null).ToList())
+                        {
+                            <option value="@driver.FullName:@driver.UserName">
+                                @driver.FullName
+                            </option>
+                        }
+                    </select>
+                </div>
+                <div style="margin-top:1.5%;">
+                    <label style="margin-left:5px;">Add A Route (In Sequence): </label>                 
+                    <button onclick="addButton()" style="margin-left:10px;" id="search" type="submit" class="btn btn-sm btn-primary">Add</button>
+                    <select @bind="selectedPage" id="pgSelect" style="margin-top:10px; width:40%;height:35px;" class="form-control">
+                        @foreach (var name in pages)
+                        {
+                            <option value="@name.pgNumber">
+                                @name.pgNumber
+                            </option>
+                        }
+                    </select>
+                    <select @ref="select" id="routeList321" style="overflow:auto; margin-top:10px; width:40%;height:35px;" class="form-control">
+                        @foreach (var name in customers[selectedPage - 1])
+                        {
+                            <option value="@name.BusinessName">
+                                @name.BusinessName
+                        </option>
+                    }
+                </select>
+                <div hidden id="routeCard" style="overflow-y:hidden; width:40%;height:60px; white-space:nowrap; overflow-x:auto" class="mt-2 card list-group-item">
+                    
+                </div>
+            </div>
+            <button style="margin-top:1.5%;" id="search" onclick="@createDelivery" type="submit" class="btn btn-sm btn-primary">Create</button>
+        </section>
+    }
+    else
+    {
+        <p>You must be logged in as an admin to view this page.</p>
+    }
+    </Authorized>
+    <NotAuthorized>
+        <p>You must be logged in to view this page.</p>
+    </NotAuthorized>
+</AuthorizeView>
+@code {
+    public ElementReference select{ get; set; }
+    public int selectedPage{ get; set; }
+    public List<List<Customer>> customers{ get; set; }
+    public List<Page> pages { get; set; }
+    public int totalCount { get; set; }
+    const int selectLimit = 500;
+
+    public class Page{
+        public int pgNumber{ get; set; }
+        public int items { get; set; }
+    }
+
+    protected override Task OnInitializedAsync()
+    {
+        totalCount = dbContext.customersList.ToList().Count;
+        pages = new List<Page>();
+        customers = new List<List<Customer>>();
+        int count = totalCount / selectLimit;
+        int left = totalCount % selectLimit;
+
+
+        if (totalCount <= selectLimit)
+        {
+            Page pg = new Page();
+            pg.pgNumber = 1;
+            pg.items = totalCount;
+            pages.Add(pg);
+        }
+        else
+        {
+            for (int i = 0; i < count; i++)
+            {
+                Page pg1 = new Page();
+                pg1.pgNumber = i+1;
+                pg1.items = selectLimit;
+                pages.Add(pg1);
+            }
+
+            if(left>0)
+            {
+                Page pg = new Page();
+                pg.pgNumber = pages.Count + 1;
+                pg.items = left;
+                pages.Add(pg);
+            }
+        }
+
+        customers.Add(dbContext.customersList.ToList().Take(pages[0].items).ToList());
+
+        for (int i = 1; i < pages.Count; i++)
+            customers.Add(dbContext.customersList.ToList().Skip(pages[i-1].pgNumber*selectLimit).Take(pages[i].items).ToList());
+
+        selectedPage = pages.Count > 0 ? 1:-1;
+        return base.OnInitializedAsync();
+    }
+    
+    private async void createDelivery()
+    {
+        Delivery delivery = new Delivery();
+        delivery.DeliveryDriver = await jsRuntime.InvokeAsync<string>("getDriver");
+        delivery.DeliveryRoutes = await jsRuntime.InvokeAsync<string>("getRoutesList");
+
+        string msg = "The following rquirements must be fulfilled before continuing: \n";
+        string requirements = "";
+        if(String.IsNullOrWhiteSpace(delivery.DeliveryDriver))
+        {
+            requirements += "- Please Select A Driver!\n";
+        }
+        if (String.IsNullOrWhiteSpace(delivery.DeliveryRoutes))
+        {
+            requirements += "- Please Select At Least One Route!\n";
+        }
+
+        if(requirements!="")
+            await jsRuntime.InvokeVoidAsync("msg", msg+requirements);
+        else
+        {
+            delivery.DriverUserName = delivery.DeliveryDriver?.Substring(delivery.DeliveryDriver.IndexOf(":") + 1);
+            delivery.DeliveryDriver = delivery.DeliveryDriver?.Substring(0, delivery.DeliveryDriver.IndexOf(":"));
+            delivery.DeliveryStatus = false;
+
+            dbContext.deliveriesList.Add(delivery);
+            dbContext.SaveChanges();
+
+            await jsRuntime.InvokeVoidAsync("msg", "A New Delivery Has Been Successfully Created!");
+            nav.NavigateTo(nav.Uri, forceLoad: true);
+        }
+    }
+}

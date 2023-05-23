@@ -1,0 +1,126 @@
+﻿@page "/driverTrack"
+@using Microsoft.AspNetCore.Identity
+@using TruckTrack.Data
+@using TruckTrack.Models
+@inject ApplicationDbContext dbContext
+@inject IJSRuntime jsRunTime
+@inject SignInManager<AdvancedUser> _signInManager;
+@inject AuthenticationStateProvider authenticate;
+@inject NavigationManager navigationManager
+
+<PageTitle>Track Drivers</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        @if (_signInManager.IsSignedIn(context.User) && (dbContext.Users.Where(x => x.UserName == context.User.Identity.Name).FirstOrDefault().Admin == true || dbContext.Users.Where(x => x.UserName == context.User.Identity.Name).FirstOrDefault().Owner == true))
+        {
+            <section>
+                <h5><b>Search By Customer</b></h5>
+                <input @bind-value="inputName" style="margin-top:20px; margin-bottom:20px; width:40%;height:35px;" placeholder="Business Name" type="text" id="name" class="form-control" />
+                <button @onclick="@(e=>SearchRoutes(1))" id="search" type="submit" class="btn btn-sm btn-primary">Search Name</button>
+
+                <input @bind-value="inputZip" style="margin-top:20px; margin-bottom:20px; width:40%;height:35px;" placeholder="Zip Code" type="number" id="zip" class="form-control" />
+                <button  @onclick="@(e=>SearchRoutes(2))" id="search" type="submit" class="btn btn-sm btn-primary">Search Zip Code</button>
+            </section>
+
+            <section style="margin-top:20px;">
+                <div style="display:flex">
+                    <h5><b>Search By Route</b></h5>
+                    <div style="margin-top:-5px; display:flex">
+                        <input onclick="SelectAll(@custLit.Count)" style="margin-left:15px;" type="checkbox" id="checkAll" />
+                        <label style="margin-top:7px; margin-left:5px;">Select All</label>
+                    </div>
+                </div>
+                <table style="margin-top:20px;">
+                    <tbody>
+                        <tr>
+                            <td>
+                                <table border="0">
+                                    <thead>
+                                        <tr border="11">
+                                            <th width="200"></th>
+                                            <th width="200"></th>
+                                            <th width="200"></th>
+                                            <th width="200"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @for (int i = custLit.Count - 1; i >= 0; i -= 5)
+                                        {
+                                            <tr>
+                                                @for (int j = i; j >= (i - 5 >= 0 ? i - 4 : 0); j--)
+                                                {
+                                                    <td class="card-body">
+                                                        <div style="display:flex">
+                                                            <input value="@dbContext.customersList.ToList().IndexOf(custLit[j])" type="checkbox" id="check @j" />
+                                                            <label style="margin-left:5px;">@getModRoute(custLit[j].Route)</label>
+                                                        </div>
+                                                    </td>
+                                                }
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button style="margin-top:20px;" id="search" @onclick="@(e=>SearchRoutes(0))" class="btn btn-sm btn-primary">Search</button>
+            </section>
+        }
+        else
+        {
+            <p>You must be logged in as an admin or owner to view this page.</p>
+        }
+            </Authorized>
+    <NotAuthorized>
+        <p>You must be logged in to view this page.</p>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code
+{
+    private string inputName = "";
+    private string inputZip = "";
+    public List<Customer> custLit { get; set; }
+
+    protected override Task OnInitializedAsync()
+    {
+        custLit = dbContext.customersList.ToList().Where(x => !String.IsNullOrWhiteSpace(x.Route)).ToList().DistinctBy(y => y.Route.Trim()).ToList();
+        var x = 1;
+        return base.OnInitializedAsync();
+    }
+
+    private string getModRoute(string route)
+    {
+        if (route.Length > 14)
+            route = route.Substring(0, 14) + "...";
+
+        return route;
+    }
+    private async Task SearchRoutes(int cond)
+    {
+        if(cond==0)
+        {
+            var indexes = await jsRunTime.InvokeAsync<string>("checkIfChecked", custLit.Count);
+            if (String.IsNullOrWhiteSpace(indexes))
+                await jsRunTime.InvokeVoidAsync("msg", "Please Select At Least One CheckBox Before Proceeding!");
+            else
+                navigationManager.NavigateTo($"/driversResults/{"Indexes:"+indexes}");
+        }
+        else if (cond == 1)
+        {
+            if (String.IsNullOrWhiteSpace(inputName))
+                await jsRunTime.InvokeVoidAsync("msg", "Please Enter An Input Before Proceeding!");
+            else
+                navigationManager.NavigateTo($"/driversResults/{"Name:" + inputName.Replace("#","53549")}");
+        }
+        else if (cond == 2)
+        {
+            if (String.IsNullOrWhiteSpace(inputZip))
+                await jsRunTime.InvokeVoidAsync("msg", "Please Enter An Input Before Proceeding!");
+            else
+                navigationManager.NavigateTo($"/driversResults/{"Zip:" + inputZip}");
+        }
+    }
+}

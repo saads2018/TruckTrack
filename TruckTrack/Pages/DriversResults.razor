@@ -1,0 +1,213 @@
+﻿@page "/driversResults/{searchInput}"
+@using Microsoft.AspNetCore.Identity
+@using TruckTrack.Data
+@using TruckTrack.Models
+@inject ApplicationDbContext dbContext;
+@inject IJSRuntime jsRunTime;
+@inject SignInManager<AdvancedUser> _signInManager;
+@inject AuthenticationStateProvider authenticate;
+
+
+@code
+{
+    [Parameter]
+    public string? searchInput { get; set; }
+
+    public List<Delivery> searchList { get; set; }
+    public List<string> custList;
+    public List<Customer> customers { get; set; }
+    public string time { get; set; }
+    public int truckLocation { get; set; }
+
+    protected override Task OnInitializedAsync()
+    {
+        string input = searchInput.Replace("53549","#").Substring(searchInput.IndexOf(":") + 1);
+        truckLocation = 0;
+        customers = new List<Customer>();
+
+        if(searchInput.Contains("Name"))
+        {
+            customers = dbContext.customersList.ToList().Where(x => x.BusinessName!=null && x.BusinessName.Trim().ToLower().StartsWith(input.Trim().ToLower())).ToList();
+        }
+        else if(searchInput.Contains("Zip"))
+        {
+            customers = dbContext.customersList.ToList().Where(x => x.ZipCode?.Trim()==(input.Trim())).ToList();
+        }
+        else if (searchInput.Contains("Indexes"))
+        {
+            var indexes = input.Substring(0,input.LastIndexOf(":")).Split(":");
+            var routes= new List<string>();
+            foreach(var index in indexes)
+            {
+                routes.Add(dbContext.customersList.ToList()[Int32.Parse(index)].Route);
+            }
+
+            customers = new List<Customer>();
+            foreach (var cust in dbContext.customersList.ToList())
+            {
+                if (routes.Any(x=>x==cust.Route))
+                    customers.Add(cust);
+            }
+        }
+
+        searchList = dbContext.deliveriesList.ToList().Where(x => customers.Any(y=> y.BusinessName!=null && x.DeliveryRoutes.Contains(y.BusinessName))).ToList();
+        searchList = searchList.OrderBy(x => x.DeliveryStatus).ToList();
+        return base.OnInitializedAsync();
+    }
+
+
+    private string getName(string name)
+    {
+        name = name.Trim();
+        if (name.Length > 8)
+            name = name.Substring(0, 8) + "...";
+
+        return name;
+    }
+
+    private int getWidth(List<string> list)
+    {
+        int total = 0;
+        foreach (var x in list)
+        {
+            var newName = getName(x);
+            var width = 115 + (newName?.Length > 8 ? 19 * (newName.Length - 8) : 0) + 10;
+            total += width;
+        }
+
+        if(total<=1195)
+            total = 1195;
+
+        return total;
+    }
+
+    public bool checkIfCompleted(Delivery delivery,string route)
+    {
+        time = "";
+        bool complete = false;
+        
+        if(delivery.DeliveryTimes!=null && delivery.DeliveryTimes.Contains(route))
+        {
+            time = delivery.DeliveryTimes.Substring(delivery.DeliveryTimes.IndexOf(route) + route.Length + 1);
+            time = time.Substring(0,5);
+            complete = true;
+        }
+        return complete;
+    }
+}
+
+<PageTitle>Drivers Page</PageTitle>
+
+
+<AuthorizeView>
+    <Authorized>
+     @if (_signInManager.IsSignedIn(context.User) && (dbContext.Users.Where(x => x.UserName == context.User.Identity.Name).FirstOrDefault().Admin == true || dbContext.Users.Where(x => x.UserName == context.User.Identity.Name).FirstOrDefault().Owner == true))
+        {
+            <h3 style="margin-bottom:2%;">Drivers Found</h3>
+
+            @foreach (var delivery in searchList)
+            {
+                custList = new List<string>();
+                custList = delivery.DeliveryRoutes.Trim().Substring(0, delivery.DeliveryRoutes.LastIndexOf(":")).Split(':').ToList();
+                truckLocation = 0;
+                var percentDone = 0.0;
+                var count = 0.0;
+
+                @foreach (var route in custList)
+                {
+                    var routeMod = getName(route);
+                    if (checkIfCompleted(delivery, route))
+                    {
+                        truckLocation += (115 + (routeMod?.Length > 8 ? 15 * (routeMod.Length - 8) : 0)) + 10;
+                        count += 1;
+                    }
+                }
+                truckLocation += 70;
+                percentDone = Math.Round(100 * (count / custList.Count), 2);
+                var status = delivery.DeliveryStatus;
+                var pic = "profile.png";
+                var picCheck = dbContext.Users.ToList().Where(x => x.UserName == delivery.DriverUserName).FirstOrDefault().Picture;
+                var statusColor = "red";
+                if (status)
+                    statusColor = "green";
+                if (!String.IsNullOrWhiteSpace(picCheck))
+                    pic = $"data:image/png;base64,{picCheck}";
+                <div id="driverCard" class="card list-group-item" style="width:1200px; overflow-x:auto; padding:0px; border-radius:5px; border-width:3px; border-color:@statusColor; margin-top:1%; margin-bottom:1%;">
+                    <div style="width:@(getWidth(custList)+30.5)px; background-color:@statusColor;">
+                        <label style="margin-left:8px; color:white;">@delivery.DeliveryDriver</label>
+                    </div>
+                    <div style="width:@(getWidth(custList)+0.5)px; margin-top:10px; padding:10px; margin-right:30px; ">
+                        <div style="margin-left:@(truckLocation)px; margin-top:20px; display:flex;">
+                            <img style="border-radius:50px;" height="85" width="85" src="@pic" />
+                            <div style="font-size:small; margin-left:10px; height:40px; margin-top:7px;">
+                                <label style="color:gray">@delivery.DeliveryDriver</label>
+                                <br />
+                                <label style="color:gray">Ph: @dbContext.Users.ToList().Where(x=>x.UserName==delivery.DriverUserName).FirstOrDefault()?.PhoneNumber</label>
+                                <br />
+                                @if (percentDone < 100)
+                                {
+                                    <label style="color:gray">Heading To: @custList[(int)count]</label>
+                                    <br />
+                                }
+                                <label>@percentDone%</label>
+                            </div>
+                        </div>
+                        <br />
+
+                        @if (count == custList.Count)
+                            custList.Add("TRUCK64234303490");
+                        else
+                            custList.Insert((int)count, "TRUCK64234303490");
+
+
+                        <div style="display:flex; margin-top:0px;">
+
+                            @foreach (var route in custList)
+                            {
+                                var colorBox = "#ddc6f4";
+                                var colorFont = "black";
+
+                                if (checkIfCompleted(delivery, route))
+                                {
+                                    colorBox = "#f1eff0";
+                                    colorFont = "#b2aead";
+                                }
+                                else if (customers.Any(x => x.BusinessName == route))
+                                {
+                                    colorBox = "#4e4773";
+                                    colorFont = "white";
+                                }
+
+                                var routeMod = getName(route);
+                                var width = 115 + (routeMod?.Length > 8 ? 15 * (routeMod.Length - 8) : 0);
+
+                                @if (route == "TRUCK64234303490")
+                                {
+                                    <div>
+                                        <img style="margin-left:10px;" height="70" width="120" src="truck.png" />
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div style="margin-left:10px;">
+                                        <label style="margin-left:@(width/2 -18)px">@time</label>
+                                        <div title="@route" data-toggle="tooltip" data-placement="bottom" lacement style="background-color:@colorBox; color:@colorFont; font-weight:lighter; padding:10px; text-align:center; width:@(width)px;height:50px;">@routeMod</div>
+                                    </div>
+                                }
+
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <p>You must be logged in as an admin or owner to view this page.</p>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <p>You must be logged in to view this page.</p>
+    </NotAuthorized>
+</AuthorizeView>
+

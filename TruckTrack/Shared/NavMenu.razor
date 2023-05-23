@@ -1,0 +1,63 @@
+﻿@using TruckTrack.Data
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">TruckTrack</a>
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+
+<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+    <AuthorizeView>
+        <Authorized>
+            <nav class="flex-column">
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                        <span class="oi oi-home" aria-hidden="true"></span> Home
+                    </NavLink>
+                </div>
+                @if (dbContext.Users.ToList().Where(x => x.UserName == context.User.Identity?.Name).FirstOrDefault()?.Admin == true || dbContext.Users.ToList().Where(x => x.UserName == context.User.Identity?.Name).FirstOrDefault()?.Owner == true)
+                {
+                    @if (dbContext.Users.ToList().Where(x => x.UserName == context.User.Identity?.Name).FirstOrDefault()?.Admin == true)
+                    {
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="manageDeliveries">
+                                <span class="oi oi-list-rich" aria-hidden="true"></span>Manage Deliveries
+                            </NavLink>
+                        </div>
+                    }
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="driverTrack">
+                            <span class="oi oi-magnifying-glass" aria-hidden="true"></span>Track Drivers
+                        </NavLink>
+                    </div>
+                }
+            </nav>
+        </Authorized>
+        <NotAuthorized>
+            <nav class="flex-column">
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                        <span class="oi oi-home" aria-hidden="true"></span> Home
+                    </NavLink>
+                </div>
+            </nav>
+        </NotAuthorized>
+    </AuthorizeView>
+</div>
+
+@inject ApplicationDbContext dbContext;
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+}
