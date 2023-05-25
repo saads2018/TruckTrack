@@ -1,5 +1,8 @@
 ﻿@page "/driverTrack"
 @using Microsoft.AspNetCore.Identity
+@using System.Web
+@using System.Text
+@using System.Security.Cryptography
 @using TruckTrack.Data
 @using TruckTrack.Models
 @inject ApplicationDbContext dbContext
@@ -12,25 +15,52 @@
 
 <AuthorizeView>
     <Authorized>
-        @if (_signInManager.IsSignedIn(context.User) && (dbContext.Users.Where(x => x.UserName == context.User.Identity.Name).FirstOrDefault().Admin == true || dbContext.Users.Where(x => x.UserName == context.User.Identity.Name).FirstOrDefault().Owner == true))
+        @if (_signInManager.IsSignedIn(context.User) && (dbContext.Users.Where(x => x.UserName == context.User.Identity.Name).FirstOrDefault().Admin == true || dbContext.Users.Where(x => x.UserName == context.User.Identity.Name).FirstOrDefault().SalesPerson == true))
         {
+            
             <section>
                 <h5><b>Search By Customer</b></h5>
-                <input @bind-value="inputName" style="margin-top:20px; margin-bottom:20px; width:40%;height:35px;" placeholder="Business Name" type="text" id="name" class="form-control" />
-                <button @onclick="@(e=>SearchRoutes(1))" id="search" type="submit" class="btn btn-sm btn-primary">Search Name</button>
+                <div>
+                   
+                    <div style="margin-top:20px; display:flex;">
+                        <label >Zip Code</label>
+                        <input @bind-value="inputZip" style="margin-left:87px; border-style:none; padding-left:20px; font-size:small; font-weight:600; background-color:#e9e7ec; border-width:0px; margin-top:1px; margin-bottom:20px; width:10.7%;height:25px;" type="number" id="zip" />
+                        <img style="margin-left:470px; margin-top:-40px;" height="70" width="120" src="truck.png" />
+                    </div>
 
-                <input @bind-value="inputZip" style="margin-top:20px; margin-bottom:20px; width:40%;height:35px;" placeholder="Zip Code" type="number" id="zip" class="form-control" />
-                <button  @onclick="@(e=>SearchRoutes(2))" id="search" type="submit" class="btn btn-sm btn-primary">Search Zip Code</button>
-            </section>
+                    <div style="margin-top:20px; display:flex;">
+                        <label>Business Name</label>
+                        <input autocomplete="off" @onclick="@(e=>changeName(1))" @oninput="@(e=>changeName())" style="margin-left:40px; padding-left:20px; font-size:small; font-weight:600; border-style:none; background-color:#e9e7ec; border-width:0px; margin-top:1px; margin-bottom:20px; width:23.7%;height:25px;" type="text" id="name" />
+                        <div id="list" style="@hide">
+                            @foreach (var cust in filterList)
+                            {
+                                <a  style="text-decoration:none; font-weight:600;  background-color:white; height:70px;" @onclick="@(e=>setName(cust.BusinessName))" role="button" id="dropdownMenuLink" aria-haspopup="true" aria-expanded="false">
+                                    @cust.BusinessName
+                                    <br />
+                                    <span style="color:gray;">@cust.Address1</span>
+                                    <br>
+                                    <br/>
+                                </a>
+                            }
+                        </div>
+                    </div>
+
+                   
+                </div>
+
+@*                <button @onclick="@(e=>SearchRoutes(1))" id="search" type="submit" style="margin-left:3px; margin-top:20px;" class="btn btn-sm btn-primary">Search Name</button>
+*@
+@*                <button @onclick="@(e=>SearchRoutes(1))" id="search" style="margin-left:3px; margin-top:20px;" type="submit" class="btn btn-sm btn-primary">Search For Business</button>
+*@            </section>
 
             <section style="margin-top:20px;">
-                <div style="display:flex">
+               @* <div style="display:flex">
                     <h5><b>Search By Route</b></h5>
                     <div style="margin-top:-5px; display:flex">
                         <input onclick="SelectAll(@custLit.Count)" style="margin-left:15px;" type="checkbox" id="checkAll" />
                         <label style="margin-top:7px; margin-left:5px;">Select All</label>
                     </div>
-                </div>
+                </div>*@
                 <table style="margin-top:20px;">
                     <tbody>
                         <tr>
@@ -50,10 +80,12 @@
                                             <tr>
                                                 @for (int j = i; j >= (i - 5 >= 0 ? i - 4 : 0); j--)
                                                 {
-                                                    <td class="card-body">
+                                                    var route = custLit[j].Route;
+                                                    <td style="height:10px;" class="card-body">
                                                         <div style="display:flex">
-                                                            <input value="@dbContext.customersList.ToList().IndexOf(custLit[j])" type="checkbox" id="check @j" />
-                                                            <label style="margin-left:5px;">@getModRoute(custLit[j].Route)</label>
+                                                            <button @onclick="@(e=>SearchRoutes(0,route))" style="border-width:0px; background-color:white; color:#6e6e6d;">@getModRoute(custLit[j].Route)</button>
+                                                            @*<input value="@fullCustomersList.IndexOf(custLit[j])" type="checkbox" id="check @j" />
+                                                            <label style="margin-left:5px;">@getModRoute(custLit[j].Route)</label>*@
                                                         </div>
                                                     </td>
                                                 }
@@ -65,12 +97,12 @@
                         </tr>
                     </tbody>
                 </table>
-                <button style="margin-top:20px;" id="search" @onclick="@(e=>SearchRoutes(0))" class="btn btn-sm btn-primary">Search</button>
-            </section>
+@*                <button style="margin-top:20px;" id="search" @onclick="@(e=>SearchRoutes(0))" class="btn btn-sm btn-primary">Search</button>
+*@            </section>
         }
         else
         {
-            <p>You must be logged in as an admin or owner to view this page.</p>
+            <p>You must be logged in as an admin or sales person to view this page.</p>
         }
             </Authorized>
     <NotAuthorized>
@@ -83,12 +115,65 @@
     private string inputName = "";
     private string inputZip = "";
     public List<Customer> custLit { get; set; }
+    public string hide;
+    public List<Customer> filterList { get; set; }
+    public List<Customer> fullCustomersList { get; set; }
 
     protected override Task OnInitializedAsync()
     {
-        custLit = dbContext.customersList.ToList().Where(x => !String.IsNullOrWhiteSpace(x.Route)).ToList().DistinctBy(y => y.Route.Trim()).ToList();
+        fullCustomersList = dbContext.customersList.ToList();
+        jsRunTime.InvokeVoidAsync("hideList",DotNetObjectReference.Create(this));
+        hide = "background-color:white;  border-style:solid;  padding-top:10px;  border-color:#e9e7ec; border-size:10px; padding-left:20px; font-size:small; width:33.7%; margin-left:150px; margin-top:28px; overflow-y:auto; height:300px; position:fixed; display:none";
+        custLit = fullCustomersList.Where(x => !String.IsNullOrWhiteSpace(x.Route)).ToList().DistinctBy(y => y.Route.Trim()).ToList();
+        Customer custALL = new Customer();
+        custALL.Route = "ALL";
+        custLit.Add(custALL);
+        filterList = new List<Customer>();
         var x = 1;
         return base.OnInitializedAsync();
+    }
+
+    private async Task setName(string name)
+    {
+        if (hide.Contains("display:block"))
+        {
+            await jsRunTime.InvokeVoidAsync("setNameValue", name);
+            inputName = name;
+            hide = "background-color:white; border-style:solid; padding-top:10px; padding-left:20px; border-color:#e9e7ec; border-size:10px; font-size:small; width:33.7%; margin-left:150px; margin-top:28px; overflow-y:auto; height:300px; position:fixed; display:none";
+            await SearchRoutes(1);
+        }
+    }
+
+    private async Task changeName(int cond=0)
+    {
+        inputName = await jsRunTime.InvokeAsync<string>("getNameValue");
+        filterList = fullCustomersList.Where(x => (x.BusinessName != null && x.BusinessName.TrimStart().ToLower().Contains(inputName.ToLower())) || (x.Address1 != null && x.Address1.TrimStart().ToLower().StartsWith(inputName.ToLower()))).ToList();
+
+        if (!String.IsNullOrWhiteSpace(inputZip))
+            filterList = filterList.Where(x => x.ZipCode !=null && x.ZipCode?.Trim() == inputZip.Trim()).ToList();
+
+        if(!String.IsNullOrWhiteSpace(inputName) && filterList.Count>0)
+        {
+            var orderfilterFirst = filterList.Where(x => x.BusinessName!=null && x.BusinessName.Trim().ToLower().StartsWith(inputName.Trim().ToLower())).ToList();
+            var orderfilterLast = filterList.Where(x => x.BusinessName==null || !x.BusinessName.Trim().ToLower().StartsWith(inputName.Trim().ToLower())).ToList();
+            orderfilterFirst.Where(x => x.BusinessName != null && x.BusinessName.Trim().ToLower().Split(" ").Any(y => y.Trim().StartsWith(inputName))).ToList();
+
+            filterList = new List<Customer>();
+            foreach (var order in orderfilterFirst)
+                filterList.Add(order);
+            foreach (var order in orderfilterLast)
+                filterList.Add(order);
+
+            hide = "background-color:white; border-style:solid;  padding-top:10px; padding-left:20px; border-color:#e9e7ec; border-size:10px; font-size:small; width:33.7%; margin-left:150px; margin-top:28px; overflow-y:auto; height:300px; position:fixed; display:block";
+        }
+        else
+            hide = "background-color:white; border-style:solid;   padding-top:10px; padding-left:20px; border-color:#e9e7ec; border-size:10px; font-size:small; width:33.7%; margin-left:150px; margin-top:28px; overflow-y:auto; height:300px; position:fixed; display:none";
+    }
+
+    [JSInvokable]
+    public void hideList()
+    {
+        hide = "background-color:white; border-style:solid;  padding-top:10px; padding-left:20px; border-color:#e9e7ec; border-size:10px; font-size:small; width:33.7%; margin-left:150px; margin-top:28px; overflow-y:auto; height:300px; position:fixed; display:none";
     }
 
     private string getModRoute(string route)
@@ -98,22 +183,56 @@
 
         return route;
     }
-    private async Task SearchRoutes(int cond)
+
+
+    private static readonly byte[] Key = Encoding.UTF8.GetBytes("yourIV1234567890"); // 16, 24, or 32 bytes key for AES-128, AES-192, or AES-256
+    private static readonly byte[] IV = Encoding.UTF8.GetBytes("yourIV1234567890"); // 16 bytes IV
+
+    public static string Encrypt(string plainText)
+    {
+        using (var aes = Aes.Create())
+        {
+            aes.Key = Key;
+            aes.IV = IV;
+
+            var encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
+            using (var memoryStream = new MemoryStream())
+            {
+                using (var cryptoStream = new CryptoStream(memoryStream, encryptor, CryptoStreamMode.Write))
+                {
+                    using (var streamWriter = new StreamWriter(cryptoStream))
+                    {
+                        streamWriter.Write(plainText);
+                    }
+                }
+
+                var encryptedBytes = memoryStream.ToArray();
+                var encryptedText = Convert.ToBase64String(encryptedBytes);
+                return encryptedText;
+            }
+        }
+    }
+
+    private async Task SearchRoutes(int cond, string route="")
     {
         if(cond==0)
         {
-            var indexes = await jsRunTime.InvokeAsync<string>("checkIfChecked", custLit.Count);
-            if (String.IsNullOrWhiteSpace(indexes))
-                await jsRunTime.InvokeVoidAsync("msg", "Please Select At Least One CheckBox Before Proceeding!");
-            else
-                navigationManager.NavigateTo($"/driversResults/{"Indexes:"+indexes}");
+            //var indexes = await jsRunTime.InvokeAsync<string>("checkIfChecked", custLit.Count);
+            //if (String.IsNullOrWhiteSpace(indexes))
+            //    await jsRunTime.InvokeVoidAsync("msg", "Please Select At Least One CheckBox Before Proceeding!");
+
+            var nRoute = Encrypt("Route:" + route).Replace("#", "343430").Replace("/", "143430");
+            navigationManager.NavigateTo($"/driversResults/{nRoute}");
         }
         else if (cond == 1)
         {
             if (String.IsNullOrWhiteSpace(inputName))
                 await jsRunTime.InvokeVoidAsync("msg", "Please Enter An Input Before Proceeding!");
             else
-                navigationManager.NavigateTo($"/driversResults/{"Name:" + inputName.Replace("#","53549")}");
+            {
+                var nRoute = Encrypt("Name:" + inputName).Replace("#", "343430").Replace("/", "143430");
+                navigationManager.NavigateTo($"/driversResults/{nRoute}");
+            }
         }
         else if (cond == 2)
         {

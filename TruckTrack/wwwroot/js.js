@@ -97,3 +97,22 @@ function addButton() {
         msg("This Route Has Already Been Chosen Before!");
     }
 }
+
+function hideList(dotNetRef) {
+    document.addEventListener("click", function (event) {
+        if (event.target != document.getElementById("name")) {
+            document.getElementById("list").style = "background-color:white;  border-style:solid;  padding-top:10px; padding-left:20px; border-color:#e9e7ec; border-size:10px; font-size:small; width:33.7%; margin-left:150px; margin-top:28px; overflow-y:auto; height:300px; position:fixed; display:none";
+            dotNetRef.invokeMethodAsync('hideList');
+        }
+    });
+}
+
+function getNameValue() {
+    return document.getElementById("name").value;
+}
+
+function setNameValue(Name) {
+   document.getElementById("name").value=Name;
+}
+
+

@@ -31,7 +31,7 @@ namespace TruckTrack.Migrations
                     Id = table.Column<string>(type: "text", nullable: false),
                     FullName = table.Column<string>(type: "text", nullable: true),
                     Driver = table.Column<bool>(type: "boolean", nullable: true),
-                    Owner = table.Column<bool>(type: "boolean", nullable: true),
+                    SalesPerson = table.Column<bool>(type: "boolean", nullable: true),
                     Admin = table.Column<bool>(type: "boolean", nullable: true),
                     UserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),

@@ -6,7 +6,7 @@ namespace TruckTrack.Models
     {
         public string? FullName { get; set; }
         public Nullable<bool> Driver { get; set; }
-        public Nullable<bool> Owner { get; set; }
+        public Nullable<bool> SalesPerson { get; set; }
         public Nullable<bool> Admin { get; set; }
         public string? Picture { get; set; }
     }

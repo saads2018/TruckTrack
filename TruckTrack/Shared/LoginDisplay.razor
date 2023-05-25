@@ -3,10 +3,14 @@
 
 <AuthorizeView>
     <Authorized>
-        <a href="Identity/Account/Manage">Hello, @context.User.Identity?.Name!</a>
         @if(dbContext.Users.Where(x=>x.UserName==context.User.Identity.Name).FirstOrDefault().Admin==true)
         {
+            <a href="Identity/Account/Manage">Hello, @context.User.Identity?.Name!</a>
             <a href="Identity/Account/Register">Register New User</a>
+        }
+        else
+        {
+            <a onclick="return false;">Hello, @context.User.Identity?.Name!</a>
         }
         <form method="post" action="Identity/Account/LogOut">
             <button type="submit" class="nav-link btn btn-link">Log out</button>

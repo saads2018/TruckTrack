@@ -202,7 +202,7 @@ namespace TruckTrack.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
-                    b.Property<bool?>("Owner")
+                    b.Property<bool?>("SalesPerson")
                         .HasColumnType("boolean");
 
                     b.Property<string>("PasswordHash")

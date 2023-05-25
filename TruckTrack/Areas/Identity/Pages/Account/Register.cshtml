@@ -2,7 +2,6 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using TruckTrack.Data
 @using TruckTrack.Models
-@using BlazorInputFile;
 
 @model RegisterModel
 @{
@@ -49,7 +48,7 @@
                 <div class="form-floating">
                     <select asp-for="Input.UserType" class="form-control" id="type" autocomplete="new-password" aria-required="true">
                         <option value="driver">Driver</option>
-                        <option value="owner">Owner</option>
+                        <option value="Sales Person">Sales Person</option>
                         <option value="admin">Admin</option>
                     </select>
                     <label asp-for="Input.UserType"></label>

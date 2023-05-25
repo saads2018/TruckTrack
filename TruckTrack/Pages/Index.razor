@@ -1,14 +1,21 @@
 ﻿
 
 @page "/"
+@using TruckTrack.Data
+@inject ApplicationDbContext dbContext;
+@inject NavigationManager navigationManager;
+@inject AuthenticationStateProvider authenticate;
 
 <PageTitle>Index</PageTitle>
 
 <AuthorizeView>
     <Authorized>
+        @if (dbContext.Users.ToList().Where(x => x.UserName == context.User.Identity?.Name).FirstOrDefault()?.Admin==true)
+        {
         <h1>Hello!</h1>
 
-        Welcome to TruckTrack.
+         <p>Welcome to TruckTrack.</p>
+       }
     </Authorized>
     <NotAuthorized>
         <h1>Hello!</h1>
@@ -17,4 +24,22 @@
     </NotAuthorized>
 </AuthorizeView>
 
+@code{
+    protected override Task OnInitializedAsync()
+    {
+        var user = authenticate.GetAuthenticationStateAsync().Result;
 
+        if (dbContext.Users.ToList().Where(x => x.UserName == user.User.Identity?.Name).FirstOrDefault()?.Admin==false)
+        {
+            try
+            {
+                navigationManager.NavigateTo($"/driverTrack");
+            }
+            catch
+            {
+
+            }
+        }
+        return base.OnInitializedAsync();
+    }
+}

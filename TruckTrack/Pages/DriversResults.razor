@@ -1,5 +1,7 @@
 ﻿@page "/driversResults/{searchInput}"
 @using Microsoft.AspNetCore.Identity
+@using System.Text
+@using System.Security.Cryptography
 @using TruckTrack.Data
 @using TruckTrack.Models
 @inject ApplicationDbContext dbContext;
@@ -18,10 +20,12 @@
     public List<Customer> customers { get; set; }
     public string time { get; set; }
     public int truckLocation { get; set; }
+    public string input { get; set; }
 
     protected override Task OnInitializedAsync()
     {
-        string input = searchInput.Replace("53549","#").Substring(searchInput.IndexOf(":") + 1);
+        searchInput = Decrypt(searchInput.Replace("343430", "#").Replace("143430", "/"));
+        input = searchInput.Substring(searchInput.IndexOf(":") + 1);
         truckLocation = 0;
         customers = new List<Customer>();
 
@@ -33,9 +37,9 @@
         {
             customers = dbContext.customersList.ToList().Where(x => x.ZipCode?.Trim()==(input.Trim())).ToList();
         }
-        else if (searchInput.Contains("Indexes"))
+        else if (searchInput.Contains("Route"))
         {
-            var indexes = input.Substring(0,input.LastIndexOf(":")).Split(":");
+            /*var indexes = input.Substring(0,input.LastIndexOf(":")).Split(":");
             var routes= new List<string>();
             foreach(var index in indexes)
             {
@@ -47,7 +51,12 @@
             {
                 if (routes.Any(x=>x==cust.Route))
                     customers.Add(cust);
-            }
+            }*/
+
+            if(input=="ALL")
+                customers = dbContext.customersList.ToList();
+            else
+                customers = dbContext.customersList.ToList().Where(x => x.Route != null && x.Route.Trim().ToLower().StartsWith(input.Trim().ToLower())).ToList();
         }
 
         searchList = dbContext.deliveriesList.ToList().Where(x => customers.Any(y=> y.BusinessName!=null && x.DeliveryRoutes.Contains(y.BusinessName))).ToList();
@@ -55,12 +64,38 @@
         return base.OnInitializedAsync();
     }
 
+    private static readonly byte[] Key = Encoding.UTF8.GetBytes("yourIV1234567890"); // 16, 24, or 32 bytes key for AES-128, AES-192, or AES-256
+    private static readonly byte[] IV = Encoding.UTF8.GetBytes("yourIV1234567890"); // 16 bytes IV
 
-    private string getName(string name)
+    public static string Decrypt(string encryptedText)
+    {
+        using (var aes = Aes.Create())
+        {
+            aes.Key = Key;
+            aes.IV = IV;
+
+            var decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
+            var encryptedBytes = Convert.FromBase64String(encryptedText);
+
+            using (var memoryStream = new MemoryStream(encryptedBytes))
+            {
+                using (var cryptoStream = new CryptoStream(memoryStream, decryptor, CryptoStreamMode.Read))
+                {
+                    using (var streamReader = new StreamReader(cryptoStream))
+                    {
+                        var decryptedText = streamReader.ReadToEnd();
+                        return decryptedText;
+                    }
+                }
+            }
+        }
+    }
+
+    private string getName(string name, int length=8)
     {
         name = name.Trim();
-        if (name.Length > 8)
-            name = name.Substring(0, 8) + "...";
+        if (name.Length > length)
+            name = name.Substring(0, length) + "...";
 
         return name;
     }
@@ -99,11 +134,34 @@
 <PageTitle>Drivers Page</PageTitle>
 
 
+<style>
+    ::-webkit-scrollbar {
+        width: 12px;
+        height:10px;
+    }
+
+    ::-webkit-scrollbar-track {
+        border-radius: 8px;
+        background-color: lightgray;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        border-radius: 8px;
+        background-color: lightgray;
+    }
+</style>
+
 <AuthorizeView>
     <Authorized>
-     @if (_signInManager.IsSignedIn(context.User) && (dbContext.Users.Where(x => x.UserName == context.User.Identity.Name).FirstOrDefault().Admin == true || dbContext.Users.Where(x => x.UserName == context.User.Identity.Name).FirstOrDefault().Owner == true))
+        @if (_signInManager.IsSignedIn(context.User) && (dbContext.Users.Where(x => x.UserName == context.User.Identity.Name).FirstOrDefault().Admin == true || dbContext.Users.Where(x => x.UserName == context.User.Identity.Name).FirstOrDefault().SalesPerson == true))
         {
-            <h3 style="margin-bottom:2%;">Drivers Found</h3>
+            <div class="container" style="display:flex;">
+                        <h3 style="margin-bottom:2%;">Drivers Found</h3>
+                <div style=" display:flex; position:fixed; right:60px;">
+                            <p>Today</p>
+                            <p style="margin-left:20px;">@getName(input,48)</p>
+                        </div>
+            </div>
 
             @foreach (var delivery in searchList)
             {
@@ -132,12 +190,10 @@
                     statusColor = "green";
                 if (!String.IsNullOrWhiteSpace(picCheck))
                     pic = $"data:image/png;base64,{picCheck}";
-                <div id="driverCard" class="card list-group-item" style="width:1200px; overflow-x:auto; padding:0px; border-radius:5px; border-width:3px; border-color:@statusColor; margin-top:1%; margin-bottom:1%;">
-                    <div style="width:@(getWidth(custList)+30.5)px; background-color:@statusColor;">
-                        <label style="margin-left:8px; color:white;">@delivery.DeliveryDriver</label>
-                    </div>
-                    <div style="width:@(getWidth(custList)+0.5)px; margin-top:10px; padding:10px; margin-right:30px; ">
-                        <div style="margin-left:@(truckLocation)px; margin-top:20px; display:flex;">
+                <div id="driverCard" class="card list-group-item" style="width:1200px; overflow-x:auto; padding:0px; border-width:0px; margin-top:1%; margin-bottom:1%;">
+                    
+                    <div style="width:@(getWidth(custList)+0.5)px; margin-top:10px; padding:10px; ">
+                        <div style="margin-left:@(truckLocation)px; width:300px; margin-top:20px; display:flex;">
                             <img style="border-radius:50px;" height="85" width="85" src="@pic" />
                             <div style="font-size:small; margin-left:10px; height:40px; margin-top:7px;">
                                 <label style="color:gray">@delivery.DeliveryDriver</label>
@@ -146,7 +202,7 @@
                                 <br />
                                 @if (percentDone < 100)
                                 {
-                                    <label style="color:gray">Heading To: @custList[(int)count]</label>
+                                    <label style="color:gray">Heading To: @getName(custList[(int)count],13)</label>
                                     <br />
                                 }
                                 <label>@percentDone%</label>
@@ -179,7 +235,7 @@
                                 }
 
                                 var routeMod = getName(route);
-                                var width = 115 + (routeMod?.Length > 8 ? 15 * (routeMod.Length - 8) : 0);
+                                var width = 115 + (routeMod?.Length > 8 ? 11 * (routeMod.Length - 8) : 0);
 
                                 @if (route == "TRUCK64234303490")
                                 {
@@ -203,7 +259,7 @@
         }
         else
         {
-            <p>You must be logged in as an admin or owner to view this page.</p>
+            <p>You must be logged in as an admin or sales person to view this page.</p>
         }
     </Authorized>
     <NotAuthorized>

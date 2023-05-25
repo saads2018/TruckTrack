@@ -169,19 +169,19 @@ namespace TruckTrack.Areas.Identity.Pages.Account
                     if (Input.UserType.ToLower()=="driver")
                     {
                         user.Driver = true;
-                        user.Owner = false;
+                        user.SalesPerson = false;
                         user.Admin = false;
                     }
-                    else if (Input.UserType.ToLower() == "owner")
+                    else if (Input.UserType.ToLower() == "sales person")
                     {
                         user.Driver = false;
-                        user.Owner = true;
+                        user.SalesPerson = true;
                         user.Admin = false;
                     }
                     else if (Input.UserType.ToLower() == "admin")
                     {
                         user.Driver = false;
-                        user.Owner = false;
+                        user.SalesPerson = false;
                         user.Admin = true;
                     }
 

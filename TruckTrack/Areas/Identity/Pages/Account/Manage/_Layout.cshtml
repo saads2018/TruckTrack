@@ -1,0 +1,42 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using TruckTrack.Data
+@using TruckTrack.Models
+@{
+    if (ViewData.TryGetValue("ParentLayout", out var parentLayout) && parentLayout !=  null)
+    {
+        Layout = parentLayout.ToString();
+    }
+    else
+    {
+        Layout = "/Areas/Identity/Pages/_Layout.cshtml";
+    }
+}
+
+@inject ApplicationDbContext dbContext;
+@inject SignInManager<AdvancedUser> _signInManager;
+@inject AuthenticationStateProvider authenticate;
+
+@if (_signInManager.IsSignedIn(User) && dbContext.Users.Where(x => x.UserName == User.Identity.Name).FirstOrDefault().Admin == true)
+{
+<h1>Manage your account</h1>
+
+<div>
+    <h2>Change your account settings</h2>
+    <hr />
+    <div class="row">
+        <div class="col-md-3">
+            <partial name="_ManageNav" />
+        </div>
+        <div class="col-md-9">
+            @RenderBody()
+        </div>
+    </div>
+</div>
+}
+else
+{
+<p>You must be logged in as an admin to view this page.</p>
+}
+@section Scripts {
+    @RenderSection("Scripts", required: false)
+}
