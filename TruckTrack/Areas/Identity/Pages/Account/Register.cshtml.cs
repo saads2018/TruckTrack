@@ -153,6 +153,7 @@ namespace TruckTrack.Areas.Identity.Pages.Account
 
                     user.FullName = Input.FullName;
                     user.PhoneNumber = Input.PhoneNumber;
+                    user.EmailConfirmed = true;
 
                     if (Input.ProfilePicture != null && Input.ProfilePicture.Length > 0)
                     {
@@ -189,7 +190,8 @@ namespace TruckTrack.Areas.Identity.Pages.Account
 
                     if (_userManager.Options.SignIn.RequireConfirmedAccount)
                     {
-                        return RedirectToPage("RegisterConfirmation", new { email = Input.Email, returnUrl = returnUrl });
+                        //return RedirectToPage("RegisterConfirmation", new { email = Input.Email, returnUrl = returnUrl });
+                        return Redirect("/");
                     }
                     else
                     {

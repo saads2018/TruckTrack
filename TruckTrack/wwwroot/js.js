@@ -12,6 +12,7 @@ function getWidth() {
 }
 
 
+
 function checkIfChecked(count) {
 
     var indexes = "";
@@ -49,7 +50,12 @@ function msg(msg) {
 function addButton() {
     var route = document.getElementById('routeList321').value;
     var btns = document.getElementById("routeCard").getElementsByTagName("button");
-    var routeMod = route.replace(/\s/g, "");
+    var text = route;
+    if (text.length > 13) {
+        text = text.substring(0, 13) + "...";
+    }
+
+    var routeMod = text.replace(/\s/g, "");
 
     var exists = false;
     for (let i = 0; i < btns.length; i++) {
@@ -63,13 +69,13 @@ function addButton() {
         var button = document.createElement("button");
         var btnDelete = document.createElement("button");
 
-        button.innerText = route;
-        button.style = "margin-right:5px;"
+        button.innerText = text;
+        button.style = "margin-right:5px; margin-top:5px;"
         button.className = "btn btn-sm btn-primary";
-        button.id = route
+        button.id = text;
 
         btnDelete.innerText = "X";
-        btnDelete.style = "margin-right:5px;"
+        btnDelete.style = "margin-right:5px; margin-top:5px;"
         btnDelete.className = "btn btn-sm btn-danger";
 
         btnDelete.addEventListener("click", function () {
@@ -78,13 +84,21 @@ function addButton() {
             if (document.getElementById("routeCard").children.length == 0) {
                 document.getElementById("routeCard").hidden = true;
             }
+            else if ((btns.length) % 6 == 0) {
+                var space = document.getElementsByTagName("br");
+                document.getElementById("routeCard").removeChild(space[space.length - 1]);
+                var x = Number(document.getElementById("routeCard").style.height.replace("px", ""));
+                x = x - 50;
+                document.getElementById("routeCard").style.height = x.toString() + "px";
+            }
         });
 
         document.getElementById("routeCard").hidden = false;
         if (btns.length > 0 && btns.length % 6==0) {
-            var space = document.createElement("br");
             button.style = "margin-right:5px; margin-top:5px;"
             btnDelete.style = "margin-right:5px; margin-top:5px;"
+            var space = document.createElement("br");
+
             var x = Number(document.getElementById("routeCard").style.height.replace("px",""));
             x = x + 50;
             document.getElementById("routeCard").style.height = x.toString() + "px";
