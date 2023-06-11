@@ -1,0 +1,125 @@
+﻿
+
+@page "/manageUsers"
+@using Microsoft.AspNetCore.Identity
+@using TruckTrack.Data
+@using TruckTrack.Models
+@inject ApplicationDbContext dbContext;
+@inject NavigationManager navigationManager;
+@inject AuthenticationStateProvider authenticate;
+@inject UserManager<AdvancedUser> userManager;
+@inject IJSRuntime jsRuntime;
+
+<PageTitle>TruckTrack</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        @if (dbContext.Users.ToList().Where(x => x.UserName == context.User.Identity?.Name).FirstOrDefault()?.Admin==true)
+        {
+         
+         <h3>Manage Drivers & Sales Persons</h3>
+
+            <table style="margin-top:3%;" class="table">
+        <thead>
+            <tr>
+                <th>
+                    Name
+                </th>
+
+                <th>
+                    UserName
+                </th>
+
+                <th>
+                    Current Password
+                </th>
+
+                <th>
+                    New Password
+                </th>
+                 <th>
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var emp in dbContext.Users.ToList().Where(x=>x.Admin==false).ToList())
+            {
+            <tr>
+                <td>@emp.FullName</td>
+                <td>@emp.UserName</td>
+                 <td>
+                    <input id="old_pass_@emp.UserName" type="text" placeholder="Enter Current Password" />
+                </td>
+                <td>
+                    <input id="new_pass_@emp.UserName" type="text" placeholder="Enter New Password" />
+                </td>
+                <td>
+                   <button @onclick="@(e=>savePassWord(emp.UserName))" type="submit" style="width:200px;" class="btn btn-sm btn-primary">Save Password</button>
+                </td>
+            </tr>
+            }
+        </tbody>
+    </table>
+
+   }
+   else
+   {
+            <p>You must be logged in as admin to view this page.</p>
+   }
+    </Authorized>
+    <NotAuthorized>
+        <p>You must be logged in to view this page.</p>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code{
+    protected override Task OnInitializedAsync()
+    {
+        var user = authenticate.GetAuthenticationStateAsync().Result;
+
+        if (dbContext.Users.ToList().Where(x => x.UserName == user.User.Identity?.Name).FirstOrDefault()?.Admin==false)
+        {
+            try
+            {
+                navigationManager.NavigateTo($"/driverTrack");
+            }
+            catch
+            {
+
+            }
+        }
+        return base.OnInitializedAsync();
+    }
+
+    private async Task savePassWord(string username)
+    {
+        var user = dbContext.Users.Where(x => x.UserName == username).FirstOrDefault();
+        string currPass = await jsRuntime.InvokeAsync<string>("getPass", "old_pass_", username);
+        string newPass = await jsRuntime.InvokeAsync<string>("getPass", "new_pass_", username);
+        string msg = "";
+
+        if (String.IsNullOrWhiteSpace(currPass) || String.IsNullOrWhiteSpace(newPass))
+            msg = "Please Fill Both The Current And New Password Fields Before Pressing The Save Button!";
+        else
+        {
+            var passwordHasher = new PasswordHasher<AdvancedUser>();
+            var validPass = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, currPass);
+
+            if (validPass.ToString() == "Success")
+            {
+                if (currPass.Trim() == newPass.Trim())
+                    msg = "Please Enter A Unique Password!";
+                else
+                {
+                    dbContext.Users.Where(x => x.UserName == username).FirstOrDefault().PasswordHash = passwordHasher.HashPassword(user, newPass);
+                    dbContext.SaveChanges();
+                    msg = "The New Password For User: " + username + " Has Been Successfully Saved!";
+                }
+            }
+            else
+                msg = "The Current Password Entered Was Incorrect, Please Try Again!";
+        }
+
+        await jsRuntime.InvokeVoidAsync("msg", msg);
+    }
+}

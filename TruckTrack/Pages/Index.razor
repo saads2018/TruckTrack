@@ -1,12 +1,16 @@
 ﻿
 
 @page "/"
+@using Microsoft.AspNetCore.Identity
 @using TruckTrack.Data
+@using TruckTrack.Models
 @inject ApplicationDbContext dbContext;
 @inject NavigationManager navigationManager;
 @inject AuthenticationStateProvider authenticate;
+@inject UserManager<AdvancedUser> userManager;
+@inject IJSRuntime jsRuntime;
 
-<PageTitle>Index</PageTitle>
+<PageTitle>TruckTrack</PageTitle>
 
 <AuthorizeView>
     <Authorized>
@@ -14,8 +18,8 @@
         {
         <h1>Hello!</h1>
 
-         <p>Welcome to TruckTrack.</p>
-       }
+         <p>Welcome to TruckTrack.</p> 
+        }
     </Authorized>
     <NotAuthorized>
         <h1>Hello!</h1>
@@ -41,5 +45,27 @@
             }
         }
         return base.OnInitializedAsync();
+    }
+
+    private async Task savePassWord(string username)
+    {
+        var user = dbContext.Users.Where(x => x.UserName == username).FirstOrDefault();
+        string currPass = await jsRuntime.InvokeAsync<string>("getPass", "old_pass_", username);
+        string newPass = await jsRuntime.InvokeAsync<string>("getPass", "new_pass_", username);
+        var passwordHasher = new PasswordHasher<AdvancedUser>();
+        var validPass = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, currPass);
+
+        string msg = "";
+
+        if (validPass.ToString() == "Success")
+        {
+            dbContext.Users.Where(x => x.UserName == username).FirstOrDefault().PasswordHash = passwordHasher.HashPassword(user, newPass);
+            dbContext.SaveChanges();
+            msg = "The New Password For User: " + username + " Has Been Successfully Saved!";
+        }
+        else
+            msg = "The Current Password Entered Was Incorrect, Please Try Again!";
+
+        await jsRuntime.InvokeVoidAsync("msg", msg);
     }
 }

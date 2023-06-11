@@ -1,6 +1,10 @@
-﻿@using TruckTrack.Data
+﻿@using Microsoft.AspNetCore.Identity
+@using TruckTrack.Data
+@using TruckTrack.Models
 @inherits LayoutComponentBase
 @inject ApplicationDbContext dbContext;
+@inject SignInManager<AdvancedUser> _signInManager;
+@inject AuthenticationStateProvider authenticate;
 
 <PageTitle>TruckTrack</PageTitle>
 

@@ -7,11 +7,16 @@
     }
 }
 
+function getLink() {
+    return window.location.href.toString();
+}
 function getWidth() {
     return window.innerWidth;
 }
 
-
+function getPass(type,username) {
+    return document.getElementById(type + username).value;
+}
 
 function checkIfChecked(count) {
 
@@ -30,7 +35,7 @@ function getDriver() {
 }
 
 function getRoutesList() {
-    var btns = document.getElementById("routeCard").getElementsByTagName("button");
+    var btns = document.getElementById("routeCard").getElementsByTagName("a");
 
     var list = "";
     for (let i = 0; i < btns.length; i++) {
@@ -51,6 +56,7 @@ function addButton() {
     var route = document.getElementById('routeList321').value;
     var btns = document.getElementById("routeCard").getElementsByTagName("button");
     var text = route;
+
     if (text.length > 13) {
         text = text.substring(0, 13) + "...";
     }
@@ -68,11 +74,15 @@ function addButton() {
     if (!exists) {
         var button = document.createElement("button");
         var btnDelete = document.createElement("button");
+        var link = document.createElement("a");
 
         button.innerText = text;
         button.style = "margin-right:5px; margin-top:5px;"
         button.className = "btn btn-sm btn-primary";
         button.id = text;
+
+        link.innerText = route;
+        link.hidden = true;
 
         btnDelete.innerText = "X";
         btnDelete.style = "margin-right:5px; margin-top:5px;"
@@ -106,6 +116,7 @@ function addButton() {
         }
         document.getElementById("routeCard").appendChild(button);
         document.getElementById("routeCard").appendChild(btnDelete);
+        document.getElementById("routeCard").appendChild(link);
     }
     else {
         msg("This Route Has Already Been Chosen Before!");

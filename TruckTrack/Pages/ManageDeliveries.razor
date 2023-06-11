@@ -15,7 +15,7 @@
     <Authorized>
         @if (_signInManager.IsSignedIn(context.User) && dbContext.Users.Where(x => x.UserName == context.User.Identity.Name).FirstOrDefault().Admin == true)
         {
-            <h3>ManageDeliveries</h3>
+            <h3>Manage Deliveries</h3>
 
             <section style="margin-top:3%;">
                 <h5><b>Create A Delivery</b></h5>
