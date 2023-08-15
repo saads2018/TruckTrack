@@ -291,8 +291,8 @@ namespace TruckTrack.Migrations
                     b.Property<string>("DeliveryRoutes")
                         .HasColumnType("text");
 
-                    b.Property<bool>("DeliveryStatus")
-                        .HasColumnType("boolean");
+                    b.Property<string>("DeliveryStatus")
+                        .HasColumnType("text");
 
                     b.Property<string>("DeliveryTimes")
                         .HasColumnType("text");

@@ -84,7 +84,7 @@ namespace TruckTrack.Migrations
                     DeliveryDriver = table.Column<string>(type: "text", nullable: true),
                     DeliveryRoutes = table.Column<string>(type: "text", nullable: true),
                     DeliveryTimes = table.Column<string>(type: "text", nullable: true),
-                    DeliveryStatus = table.Column<bool>(type: "boolean", nullable: false),
+                    DeliveryStatus = table.Column<string>(type: "text", nullable: false),
                     DriverUserName = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>

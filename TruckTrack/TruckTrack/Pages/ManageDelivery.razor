@@ -1,0 +1,167 @@
+﻿
+@page "/manageDeliveries"
+@using Microsoft.AspNetCore.Identity
+@using System.Text
+@using Microsoft.AspNetCore.SignalR.Client
+@using Newtonsoft.Json
+@using TruckTrack.Data
+@using TruckTrack.Models
+@inject ApplicationDbContext dbContext;
+@inject NavigationManager navigationManager
+@inject NavigationManager navigationManager;
+@inject AuthenticationStateProvider authenticate;
+@inject UserManager<AdvancedUser> userManager;
+@inject IJSRuntime jsRuntime;
+@inject IConfiguration config;
+
+<PageTitle>TruckTrack</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        @if (dbContext.Users.ToList().Where(x => x.UserName == context.User.Identity?.Name).FirstOrDefault()?.Admin==true)
+        {
+         
+        <div style="display:flex;">
+                <h3>Manage Deliveries</h3>
+                <button @onclick="@(e=>createDelivery())" type="submit" style="width:200px; position:fixed; margin-top:15px; right:130px;" class="btn btn-sm btn-primary">Add New Delivery</button>
+        </div>
+        
+            <table style="margin-top:3%;" class="table">
+        <thead>
+            <tr>
+                <th>
+                    Driver Name
+                </th>
+
+                <th>
+                    Driver UserName
+                </th>
+
+                <th>
+                    No. of Routes
+                </th>
+
+                <th>
+                    Delivery Status
+                </th>
+
+                 <th>
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var emp in dbContext.deliveriesList.ToList())
+            {
+            <tr>
+                <td>@emp.DeliveryDriver</td>
+                <td>@emp.DriverUserName</td>
+                <td>@emp.DeliveryRoutes.Count(x=>x==':') Route(s)</td>
+                <td>
+                 @{
+                     var status = @emp.DeliveryStatus == "Ended"? "Completed":"Incomplete";
+                 }
+                 @status
+                 </td>
+                <td>
+                   <button @onclick="@(e=>editDelivery(emp.DeliveryId))" type="submit" style="width:100px;" class="btn btn-sm btn-primary">Edit</button>
+                                <button @onclick="@(e=>deleteDelivery(emp.DeliveryId))" type="submit" style="width:100px;" class="btn btn-sm btn-danger">Delete</button>
+                </td>
+            </tr>
+            }
+        </tbody>
+    </table>
+
+   }
+   else
+   {
+            <p>You must be logged in as admin to view this page.</p>
+   }
+    </Authorized>
+    <NotAuthorized>
+        <p>You must be logged in to view this page.</p>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code{
+
+    private HubConnection hubConnection;
+
+    protected override Task OnInitializedAsync()
+    {
+        var user = authenticate.GetAuthenticationStateAsync().Result;
+
+        var hubUrl = config.GetValue<string>("SignalIRLink");
+        hubConnection = new HubConnectionBuilder()
+        .WithUrl(hubUrl)
+        .Build();
+
+        hubConnection.On("ReceiveMessage", () =>
+        {
+            HandleDatabaseChange();
+        });
+
+        hubConnection.StartAsync();
+
+        if (dbContext.Users.ToList().Where(x => x.UserName == user.User.Identity?.Name).FirstOrDefault()?.Admin==false)
+        {
+            try
+            {
+                navigationManager.NavigateTo($"/driverTrack");
+            }
+            catch
+            {
+
+            }
+        }
+        return base.OnInitializedAsync();
+    }
+
+    private async Task createDelivery()
+    {
+        navigationManager.NavigateTo("/createDelivery/add");   
+    }
+
+    private async Task deleteDelivery(int id)
+    {
+        try
+        {
+            await callAPI("deleteDelivery?id="+id);
+            await jsRuntime.InvokeVoidAsync("msg", "The Delivery Has Been Successfully Deleted!");
+        }
+        catch(Exception ex)
+        {
+
+        }
+       
+    }
+
+    private async Task HandleDatabaseChange()
+    {
+        await jsRuntime.InvokeVoidAsync("location.reload");
+    }
+
+    public async Task callAPI(string uri)
+    {
+        try
+        {
+            var baseURI = config.GetValue<string>("Host_IP");
+            using (var client = new HttpClient())
+            {
+                var requestUri = baseURI + "Master/" + uri; // Replace with your API endpoint
+                var response = await client.PostAsync(requestUri,null);
+
+            }
+        }
+        catch
+        {
+
+        }
+    }
+
+    private async Task editDelivery(int id)
+    {
+        navigationManager.NavigateTo($"/createDelivery/{id.ToString()}");
+    }
+
+   
+}

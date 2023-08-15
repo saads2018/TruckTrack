@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI;
 using Microsoft.EntityFrameworkCore;
+using Plk.Blazor.DragDrop;
 using TruckTrack.Areas.Identity;
 using TruckTrack.Data;
 using TruckTrack.Models;
@@ -20,6 +22,13 @@ builder.Services.AddDefaultIdentity<AdvancedUser>(options => options.SignIn.Requ
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<AdvancedUser>>();
+builder.Services.AddBlazorDragDrop();
+
+
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 1024 * 1024 * 100; // Set the desired maximum file size in MB
+});
 
 var app = builder.Build();
 
@@ -47,5 +56,4 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
-
 app.Run();

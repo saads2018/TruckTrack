@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using TruckTrack.Models;
+using TruckTrackAPIs.Models;
 
 namespace TruckTrack.Data
 {
@@ -10,8 +11,10 @@ namespace TruckTrack.Data
             : base(options)
         {
         }
+        public DbSet<DeliveryDetails> deliveryDetails { get; set; }
         public DbSet<Customer> customersList { get; set; }
         public DbSet<Delivery> deliveriesList { get; set; }
+        public DbSet<RouteDeliveredDetails> routeDeliveredDetails { get; set; }
 
     }
 }

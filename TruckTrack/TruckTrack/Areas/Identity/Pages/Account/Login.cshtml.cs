@@ -113,7 +113,7 @@ namespace TruckTrack.Areas.Identity.Pages.Account
 
             if (ModelState.IsValid)
             {
-                if (_dbContext.Users.ToList().Where(x => x.UserName == Input.Email).FirstOrDefault()?.Driver == true)
+                if (_dbContext.Users.ToList().Where(x => x.UserName == Input.Email).FirstOrDefault()?.Driver == true || _dbContext.Users.ToList().Where(x => x.UserName == Input.Email).FirstOrDefault()?.SalesPerson == true)
                 {
                     ModelState.AddModelError(string.Empty, "Invalid login attempt.");
                     return Page();
